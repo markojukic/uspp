@@ -9,7 +9,6 @@ from pathlib import Path
 
 
 class DictionaryGraph(Graph):
-    version = '1'
     dictionaries = ['OPTED']
 
     def __init__(self, name: str, word_characters: str):
@@ -48,7 +47,7 @@ class DictionaryGraph(Graph):
         print('Progress: ', end='', flush=True)
         for letter in ascii_lowercase:
             path = Path(f'files/{letter}.html')
-            if path.is_file():
+            if path.is_file() and self.get(f'downloaded_{letter}') is not None:
                 with open(path, 'r') as f:
                     soup = BeautifulSoup(f.read(), 'lxml')
             else:
@@ -56,8 +55,9 @@ class DictionaryGraph(Graph):
                 if response.status_code != requests.codes.ok:
                     raise Exception(f'Unexpected response status: {response.status_code}')
                 soup = BeautifulSoup(response.text, 'lxml')
-                with open(path, 'w') as f:
+                with open(path, 'w', encoding='utf-8') as f:
                     f.write(response.text)
+                self.set(f'downloaded_{letter}', '1')
             for entry in soup.body.find_all('p', recursive=False):
                 children = list(entry.children)
                 assert len(children) == 4

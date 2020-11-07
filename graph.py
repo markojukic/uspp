@@ -7,7 +7,7 @@ from typing import Tuple
 
 # Unweighted directed graph
 class Graph:
-    version = '1'
+    version = '2'
 
     def __init__(self, name):
         self.name = name
@@ -102,22 +102,57 @@ class Graph:
     def size(self):
         return self.query_value('SELECT COUNT(*) FROM vertices'), self.query_value('SELECT COUNT(*) FROM edges')
 
-    def adjacency_matrix(self, value: str) -> Tuple[pd.Series, csr_matrix]:
+    # Returns all vertices and edges as pandas DataFrames
+    def to_pandas(self):
+        return pd.read_sql('SELECT * FROM vertices', self.conn, index_col='id'), pd.read_sql('SELECT * FROM edges', self.conn)
+
+    # Generates adjacency matrix of the neighbourhood graph G_w
+    # Methods:
+    #   0 - Uses all edges
+    #   1 - Removes words from G_w if they appear in definitions of more than 1000 words in whole dictionary
+    #   2 - Uses all edges, weight of edge i->j will be 1/(number of occurrences of j in definitions in whole dictionary)
+    #   2, f - Uses all edges, weight of edge i->j will be 1/f(number of occurrences of j in definitions in whole dictionary)
+    def adjacency_matrix(self, value: str, method=1, f=None) -> Tuple[pd.Series, csr_matrix]:
         w = self.query_value('SELECT id FROM vertices WHERE value=?', (value,))
         if w is None:
             raise Exception('Vertex does not exist')
+        assert method in (0, 1, 2)
+
         # Vertices of the neighbourhood graph G_w
-        self.conn.execute('''CREATE TEMPORARY VIEW IF NOT EXISTS vertices_{0} AS
+        vertices_view = f'vertices_{w}_{method}'
+        if method == 0 or method == 2:
+            self.conn.execute('CREATE TEMPORARY VIEW IF NOT EXISTS {1} AS SELECT id1 AS id FROM edges WHERE id2={0} UNION SELECT id2 FROM edges WHERE id1={0} UNION VALUES({0})'.format(w, vertices_view))
+        elif method == 1:
+            self.conn.execute('''CREATE TEMPORARY VIEW IF NOT EXISTS {1} AS
             SELECT id FROM (SELECT id2 AS id, COUNT(id1) AS count FROM edges WHERE id2 IN (
                 SELECT id1 AS id FROM edges WHERE id2={0} UNION SELECT id2 FROM edges WHERE id1={0}
             ) GROUP BY id2) WHERE count < 1000
             UNION VALUES({0})
-        '''.format(w))
-        vertices = pd.read_sql(f'SELECT vertices.id, vertices.value FROM vertices JOIN vertices_{w} ON vertices.id = vertices_{w}.id', self.conn, index_col='id')
-        n = vertices.size
-        vertices['i'] = np.arange(0, n)
-        edges = pd.read_sql(f'SELECT * FROM edges WHERE id1 IN vertices_{w} AND id2 IN vertices_{w}', self.conn)
-        return vertices.set_index('i')['value'], csr_matrix((np.ones(edges.shape[0]), (edges['id1'].map(vertices['i']), edges['id2'].map(vertices['i']))), shape=(n, n))  # , pd.concat((edges['id1'].map(vertices['i']), edges['id2'].map(vertices['i'])), axis=1)
+        '''.format(w, vertices_view))
+
+        # Vertices and associated words
+        if method == 0 or method == 1:
+            vertices = pd.read_sql('SELECT vertices.id, vertices.value FROM vertices JOIN {0} ON vertices.id = {0}.id'.format(vertices_view), self.conn, index_col='id')
+        elif method == 2:
+            vertices = pd.read_sql('''SELECT vertices.id, vertices.value, in_degrees.count FROM (vertices JOIN {1} ON vertices.id = {1}.id) LEFT JOIN (
+                SELECT id2 AS id, COUNT(id1) AS count FROM edges WHERE id2 IN {1} GROUP BY id2
+            ) AS in_degrees ON vertices.id = in_degrees.id'''.format(w, vertices_view), self.conn, index_col='id')
+
+        # Edges
+        edges = pd.read_sql('SELECT * FROM edges WHERE id1 IN {0} AND id2 IN {0}'.format(vertices_view), self.conn)
+
+        # Edge weights
+        if method == 0 or method == 1:
+            weights = np.ones(edges.shape[0])
+        elif method == 2:
+            if f is not None:
+                vertices['count'] = f(vertices['count'])
+            weights = 1 / edges['id2'].map(vertices['count'])
+
+        # New index for vertices
+        vertices['i'] = np.arange(0, vertices.shape[0])
+
+        return vertices.set_index('i')['value'], csr_matrix((weights, (edges['id1'].map(vertices['i']), edges['id2'].map(vertices['i']))), shape=(vertices.shape[0], vertices.shape[0]))
 
 
 class WeightedGraph(Graph):
