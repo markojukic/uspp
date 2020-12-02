@@ -1,0 +1,115 @@
+svg {
+    background-color: #FFF;
+    cursor: default;
+    -webkit-user-select: none;
+    -moz-user-select: none;
+    -ms-user-select: none;
+    -o-user-select: none;
+    user-select: none;
+}
+
+svg:not(.active):not(.ctrl) {
+    cursor: crosshair;
+}
+
+path.link {
+    fill: none;
+    stroke: #000;
+    stroke-width: 4px;
+    cursor: default;
+}
+
+svg:not(.active):not(.ctrl) path.link {
+    cursor: pointer;
+}
+
+path.link.selected {
+    stroke-dasharray: 10,2;
+}
+
+path.link.dragline {
+    pointer-events: none;
+}
+
+path.link.hidden {
+    stroke-width: 0;
+}
+
+circle.node {
+    stroke-width: 1.5px;
+    cursor: pointer;
+}
+
+circle.node.reflexive {
+    stroke: #000 !important;
+    stroke-width: 2.5px;
+}
+
+text {
+    font: 12px sans-serif;
+    pointer-events: none;
+}
+
+text.id {
+    text-anchor: middle;
+    font-weight: bold;
+}
+
+table {
+    border-collapse: collapse;
+}
+
+th, td {
+    border: 1px solid black;
+    text-align: center;
+    vertical-align: middle;
+    font-size: 130%;
+    height: 30px;
+    width: 70px;
+}
+
+#similarity_table > :first-child > :first-child {
+    border: none;
+}
+
+svg {
+    border: solid 1px #333333;
+}
+
+img {
+    padding-right: 6px;
+}
+
+button {
+    background-color: green;
+    border: none;
+    color: white;
+    padding: 7px 12px;
+    text-decoration: none;
+    font-size: 30px;
+    margin-bottom: 20px;
+}
+
+.flex-row {
+    display: flex;
+    align-items: center;
+}
+
+.flex-row > div {
+    margin: 10px;
+}
+
+#content {
+    display: flex;
+    flex-direction: column;
+    /*justify-content: center;*/
+    align-items: center;
+}
+
+.title {
+    text-align: center;
+    font-size: 30px;
+    padding: 5px;
+    background: #333333;
+    color: white;
+}
