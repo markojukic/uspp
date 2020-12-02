@@ -7,7 +7,7 @@ from typing import Tuple
 
 # Unweighted directed graph
 class Graph:
-    version = '2'
+    version = '3'
 
     def __init__(self, name):
         self.name = name
