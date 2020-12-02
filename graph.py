@@ -61,7 +61,7 @@ class Graph:
         schema = f'CREATE TABLE IF NOT EXISTS {name} (' + ','.join('\n    ' + line for line in self.tables[name]) + '\n)'
         self.conn.execute(schema)
 
-    def query_value(self, sql: str, parameters):
+    def query_value(self, sql: str, parameters=()):
         c = self.conn.cursor()
         c.row_factory = lambda cursor, row: row[0]
         return c.execute(sql, parameters).fetchone()
