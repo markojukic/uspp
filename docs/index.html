@@ -7,20 +7,61 @@
 </head>
 
 <body>
+<div id="container">
+    <div id="help">
+        <button id="close-help" class="button-white" onclick="closeHelp()">ZATVORI</button>
+        <ul id="tips">
+            <li>
+                Klikom miša u prazno polje dodajemo nove vrhove.
+            </li>
+            <li>
+                Klikom miša na jedan vrh i povlačenjem do drugog vrha dodajemo usmjereni brid između vrhova.
+            </li>
+            <li>
+                Vrhove i bridove označavamo tako da kliknemo na njih.
+            </li>
+            <li>
+                Pritiskom na tipku
+                <button id="delete" class="button-white">Delete</button>
+                na tipkovnici brišemo označeni vrh ili brid.
+            </li>
+            <li>
+                Klikom na gumb
+                <button class="button-green"><img src="calculator.svg" height="30">Matrica sličnosti</button>
+                računamo matricu sličnosti unesenih grafova.
+            </li>
+            <li>
+                Retci u matrici sličnosti predstavljaju vrhove prvog grafa, a stupci vrhove drugog grafa.
+            </li>
+        </ul>
+    </div>
+    <div id="header">
+        <div>
+            Primjeri:
+            <select id="examples" onchange="loadExample(this)">
+                <option value="-1">Odaberi primjer</option>
+            </select>
+        </div>
+        <button class="button-white" onclick="openHelp()">POMOĆ</button>
+    </div>
     <div id="content">
-        <div class="flex-row">
+        <div id="graphs">
             <div>
-                <div class="title">PRVI GRAF</div>
-                <svg id="left" height="600" width="600" tabindex="-1"></svg>
+                <div class="title">PRVI GRAF<img src="trash.svg" height="30" onclick="resetGraph(0)"></div>
+                <svg id="left" height="600" width="600"></svg>
             </div>
             <div>
-                <div class="title">DRUGI GRAF</div>
-                <svg id="right" height="600" width="600" tabindex="-1"></svg>
+                <div class="title">DRUGI GRAF<img src="trash.svg" height="30" onclick="resetGraph(1)">
+                </div>
+                <svg id="right" height="600" width="600"></svg>
             </div>
         </div>
-        <button onclick="similarityMatrix()" class="flex-row"><img src="calculator-solid.svg" height="30">Matrica sličnosti</button>
+        <button class="button-green" onclick="similarityMatrix()" class="flex-row"><img src="calculator.svg"
+                                                                                        height="30">Matrica sličnosti
+        </button>
         <table id="similarity_table" style="display: none;"></table>
     </div>
+</div>
 </body>
 
 <script src="https://cdn.jsdelivr.net/npm/mathjs@8.0.1/lib/browser/math.min.js"></script>

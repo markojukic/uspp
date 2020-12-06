@@ -7,20 +7,13 @@ class Graph {
         //  - nodes are known by 'id', not by index in array.
         //  - reflexive edges are indicated on the node (as a bold black circle).
         //  - links are always source < target; edge directions are set by 'left' and 'right'.
-        this.nodes = [
-            {id: 0, reflexive: false},
-            {id: 1, reflexive: false},
-            {id: 2, reflexive: false},
-        ];
-        this.links = [
-            {source: this.nodes[0], target: this.nodes[1], left: false, right: true},
-            {source: this.nodes[1], target: this.nodes[2], left: false, right: true},
-        ];
-        this.lastNodeId = 2;
+        this.nodes = [];
+        this.links = [];
+        this.size = 0;
     }
 
     addNode(x, y) {
-        this.nodes.push({id: ++this.lastNodeId, reflexive: false, x: x, y: y});
+        this.nodes.push({id: this.size++, reflexive: false, x: x, y: y});
     }
 
     removeNode(node) {
@@ -71,12 +64,13 @@ class Graph {
         return adjacency_matrix;
     }
 
-    draw(selector) {
+    draw(svg_element, height, width) {
         const self = this;
 
-        const svg = d3.select(selector);
-        const height = svg.attr('height');
-        const width = svg.attr('width');
+        const svg = d3.select(svg_element)
+            .attr("height", height)
+            .attr("width", width)
+            .attr("tabindex", "-1");
 
         svg.on('contextmenu', () => {
             d3.event.preventDefault();
@@ -413,11 +407,21 @@ class Graph {
     }
 }
 
-graph1 = new Graph();
-graph1.draw('#left', 600, 600);
+const svgs = [
+    document.getElementById("left"),
+    document.getElementById("right"),
+]
 
-graph2 = new Graph();
-graph2.draw('#right', 600, 600);
+const svg_height = svgs[0].getAttribute("height");
+const svg_width = svgs[0].getAttribute("width");
+
+const graphs = [
+    new Graph(),
+    new Graph(),
+]
+
+graphs[0].draw(svgs[0], svg_height, svg_width);
+graphs[1].draw(svgs[1], svg_height, svg_width);
 
 function argMax(a) {
     let I = 0;
@@ -441,33 +445,40 @@ function createElement(tagName, innerHTML, background) {
 }
 
 function similarityMatrix() {
+    const epsilon = 1e-5;
     // Reset table contents
     const table = document.getElementById("similarity_table");
     table.innerHTML = "";
     table.style.display = "none";
 
-    const m = graph1.nodes.length;
-    const n = graph2.nodes.length;
+    const m = graphs[0].nodes.length;
+    const n = graphs[1].nodes.length;
     if (m === 0 || n === 0) {
         return;
     }
 
     // Calculate similarity matrix
-    const A = math.matrix(graph2.adjacencyMatrix(), 'sparse');
-    const B = math.matrix(graph1.adjacencyMatrix(), 'sparse');
+    const A = math.matrix(graphs[1].adjacencyMatrix(), 'sparse');
+    const B = math.matrix(graphs[0].adjacencyMatrix(), 'sparse');
     const AT = math.transpose(A);
     const BT = math.transpose(B);
     let Z = math.ones(m, n);
-    for (let i = 0; i < 100; ++i) {
-        Z = math.add(math.multiply(B, Z, AT), math.multiply(BT, Z, A));
-        Z = math.divide(Z, math.norm(Z, 'fro'));
+    while (true) {
+        const Z2 = Z;
+        for (let i = 0; i < 2; ++i) {
+            Z = math.add(math.multiply(B, Z, AT), math.multiply(BT, Z, A));
+            Z = math.divide(Z, math.norm(Z, 'fro'));
+        }
+        if (math.norm(math.subtract(Z, Z2), 'fro') < epsilon) {
+            break
+        }
     }
     Z = Z.toArray();
 
     // Update similarity table
     const tr = document.createElement("tr");
     tr.appendChild(createElement("th"))
-    for (const node of graph2.nodes) {
+    for (const node of graphs[1].nodes) {
         tr.appendChild(createElement("th", node.id, colors(node.id)));
     }
     table.appendChild(tr);
@@ -475,7 +486,7 @@ function similarityMatrix() {
     for (let i = 0; i < m; ++i) {
         const tr = document.createElement("tr");
         const z = argMax(Z[i])
-        tr.appendChild(createElement("th", graph1.nodes[i].id, colors(graph1.nodes[i].id)));
+        tr.appendChild(createElement("th", graphs[0].nodes[i].id, colors(graphs[0].nodes[i].id)));
         for (let j = 0; j < n; ++j) {
             tr.appendChild(createElement("td", Math.round((Z[i][j] + Number.EPSILON) * 1000) / 1000, j == z ? "#ddd" : undefined));
         }
@@ -486,34 +497,117 @@ function similarityMatrix() {
 
 let examples = [
     {
-        name: "Jednaki grafovi",
-        m1: [
+        name: "Self-similarity matrix 1",
+        adjacency_matrix: [
+            [
+                [0, 1, 0],
+                [0, 0, 1],
+                [0, 0, 0],
+            ],
+            [
+                [0, 1, 0],
+                [0, 0, 1],
+                [0, 0, 0],
+            ]
         ],
     },
     {
-        name: "Hub->Authority",
-        m1: [
-        ],
-        m2: [
-            [0, 1],
-            [0, 0],
+        name: "Self-similarity matrix 2",
+        adjacency_matrix: [
+            [
+                [0, 1, 0, 0],
+                [0, 0, 1, 0],
+                [0, 0, 0, 1],
+                [1, 0, 0, 0],
+            ],
+            [
+                [0, 1, 0, 0],
+                [0, 0, 1, 0],
+                [0, 0, 0, 1],
+                [1, 0, 0, 0],
+            ]
+        ]
+    },
+    {
+        name: "Self-similarity matrix 3",
+        adjacency_matrix: [
+            [
+                [0, 1, 0, 0],
+                [0, 0, 1, 1],
+                [0, 0, 0, 0],
+                [0, 0, 0, 0],
+            ],
+            [
+                [0, 1, 0, 0],
+                [0, 0, 1, 1],
+                [0, 0, 0, 0],
+                [0, 0, 0, 0],
+            ]
         ],
     },
     {
-        name: "Central score",
-        m1: [
-            [0, 0, 0, 1, 0, 0, 0],
-            [0, 0, 0, 1, 0, 0, 0],
-            [0, 0, 0, 1, 0, 0, 0],
-            [0, 0, 0, 0, 1, 1, 1],
-            [0, 0, 0, 0, 0, 0, 0],
-            [0, 0, 0, 0, 0, 0, 0],
-            [0, 0, 0, 0, 0, 0, 0],
-        ],
-        m2: [
-            [0, 1, 0],
-            [0, 0, 1],
-            [0, 0, 0],
-        ],
+        name: "Central score 1",
+        adjacency_matrix: [
+            [
+                [0, 1, 1, 0, 0],
+                [0, 0, 1, 0, 1],
+                [0, 0, 0, 1, 1],
+                [0, 1, 0, 0, 0],
+                [0, 0, 0, 0, 0],
+            ],
+            [
+                [0, 1, 0],
+                [0, 0, 1],
+                [0, 0, 0],
+            ],
+        ]
     },
 ]
+
+exampleSelect = document.getElementById("examples");
+for (let i = 0; i < examples.length; ++i) {
+    const option = document.createElement("option");
+    option.value = i;
+    option.innerHTML = examples[i].name;
+    exampleSelect.appendChild(option);
+}
+
+function resetGraph(k, m) {
+    graphs[k] = new Graph();
+    if (m !== undefined) {
+        for (let i = 0; i < m.length; ++i) {
+            graphs[k].addNode(0, 0);
+        }
+        for (let i = 0; i < m.length; ++i) {
+            for (let j = 0; j < m[i].length; ++j) {
+                if (m[i][j] !== 0) {
+                    graphs[k].addLink(i, j);
+                }
+            }
+        }
+    }
+    const new_svg = document.createElementNS("http://www.w3.org/2000/svg", "svg");
+    graphs[k].draw(new_svg, svg_height, svg_width);
+    svgs[k].replaceWith(new_svg);
+    svgs[k] = new_svg;
+}
+
+
+function loadExample(t) {
+    if (t.value >= 0) {
+        for (let k = 0; k < 2; ++k) {
+            resetGraph(k, examples[t.value].adjacency_matrix[k]);
+        }
+        similarityMatrix();
+    }
+}
+
+const help = document.getElementById("help");
+
+function openHelp() {
+    help.style.display = "flex";
+}
+
+function closeHelp() {
+    help.style.display = "none";
+}
