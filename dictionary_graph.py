@@ -1,66 +1,76 @@
-from graph import Graph
-import pandas as pd
+from graph import KeyValueStore, GraphReader, GraphWriter
 import re
 import requests
 from urllib3.exceptions import InsecureRequestWarning
 from string import ascii_lowercase
 from bs4 import BeautifulSoup
 from pathlib import Path
+import sqlite3
 
 
-class DictionaryGraph(Graph):
+class DictionaryGraph(GraphReader):
+    # Current version
+    version = '4'
+    # Supported dictionaries
     dictionaries = ['OPTED']
+    # Only words with these characters are considered
+    word_characters = 'a-z'
+    word_pattern = re.compile(f'[{word_characters}]+')
+    word_split_pattern = re.compile(f'[^{word_characters}]')
 
-    def __init__(self, name: str, word_characters: str):
+    def __init__(self, name: str):
         assert name in DictionaryGraph.dictionaries
-        super().__init__(name)
-        self.word_pattern = re.compile(f'[{word_characters}]+')
-        self.word_split_pattern = re.compile(f'[^{word_characters}]')
+        conn = sqlite3.connect(f'{name}.sqlite')
+        super().__init__(conn)
+        self.data = KeyValueStore(self.conn, 'data')
 
-        Path('files').mkdir(exist_ok=True)
-
-        if not self.get('built'):
-            print(f'Building graph for dictionary {self.name}')
-            if self.name == 'OPTED':
-                self.__build_opted()
-            self.set('built', '1')
+        if self.data.get('dictionary_version') != DictionaryGraph.version:
+            print(f'Building graph for dictionary {name}...')
+            # Rebuild graph
+            writer = GraphWriter(self.conn)
+            if name == 'OPTED':
+                self.build_opted(writer)
+            self.data.set('dictionary_version', DictionaryGraph.version)
             print('Done.')
 
-    # Only words with a definition
-    def vertices(self):
-        return pd.Series(iter(self.adjacency_list), name='value')
+    def __del__(self):
+        self.conn.close()
 
-    def is_word(self, s: str):
-        return self.word_pattern.fullmatch(s) is not None
+    @classmethod
+    def is_word(cls, s: str):
+        return cls.word_pattern.fullmatch(s) is not None
 
-    def to_words(self, s: str):
-        return set(filter(None, re.split(self.word_split_pattern, s.lower())))
+    @classmethod
+    def to_words(cls, s: str):
+        return set(filter(None, re.split(cls.word_split_pattern, s.lower())))
 
-    def __build_opted(self):
+    def build_opted(self, writer: GraphWriter):
         requests.packages.urllib3.disable_warnings(category=InsecureRequestWarning)
+        Path('files').mkdir(exist_ok=True)
         word_classes = {}
 
-        print('Processing: ', end='', flush=True)
+        print('Processing letters: ', end='', flush=True)
         for letter in ascii_lowercase:
             path = Path(f'files/{letter}.html')
-            if path.is_file():
+            if path.is_file() and self.data.get(f'downloaded_{letter}') == '1':  # File downloaded
                 with open(path, 'r') as f:
                     soup = BeautifulSoup(f.read(), 'lxml')
-            else:
+            else:  # File not downloaded
                 response = requests.get(f'https://www.mso.anu.edu.au/~ralph/OPTED/v003/wb1913_{letter}.html', verify=False)
                 if response.status_code != requests.codes.ok:
                     raise Exception(f'Unexpected response status: {response.status_code}')
                 soup = BeautifulSoup(response.text, 'lxml')
                 with open(path, 'w', encoding='utf-8') as f:
                     f.write(response.text)
+                self.data.set(f'downloaded_{letter}', '1')
             for entry in soup.body.find_all('p', recursive=False):
                 children = list(entry.children)
                 assert len(children) == 4
                 assert children[-1].startswith(') ')
                 assert children[2].name == 'i'
                 word = children[0].text.lower()
-                if self.is_word(word):
-                    self.add_adjacencies(word, self.to_words(children[3][2:].lower()))
+                if DictionaryGraph.is_word(word):
+                    writer.add_adjacencies(word, DictionaryGraph.to_words(children[3][2:].lower()))
                     word_class = children[2].text
                     if word_class in word_classes:
                         word_classes[word_class].add(word)
@@ -68,13 +78,13 @@ class DictionaryGraph(Graph):
                         word_classes[word_class] = {word}
             print(letter, end='', flush=True)
 
-        defined_words = set(self.adjacency_list)
+        defined_words = set(writer.adjacency_list)
         nouns = word_classes['n.']
         verbs = set()
         for word_class, words in word_classes.items():
             if word_class.startswith('v.'):
                 verbs.update(words)
-        for word, definition_words in self.adjacency_list.items():
+        for word, definition_words in writer.adjacency_list.items():
             filtered_words = set()
             for i in definition_words:
                 if i in defined_words:
@@ -97,7 +107,8 @@ class DictionaryGraph(Graph):
                     filtered_words.add(i[:-3] + 'y')
                 elif i.endswith('ing') and i[:-3] in verbs:  # play -> playing
                     filtered_words.add(i[:-3])
-            self.adjacency_list[word] = filtered_words
+            writer.adjacency_list[word] = filtered_words
 
+        # Save induced subgraph with only defined words
         print('\nSaving...')
-        self.save()
+        writer.save(list(writer.adjacency_list))
