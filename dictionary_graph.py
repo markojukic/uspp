@@ -56,7 +56,10 @@ class DictionaryGraph(GraphReader):
                 with open(path, 'r') as f:
                     soup = BeautifulSoup(f.read(), 'lxml')
             else:  # File not downloaded
-                response = requests.get(f'https://www.mso.anu.edu.au/~ralph/OPTED/v003/wb1913_{letter}.html', verify=False)
+                response = requests.get(
+                    f'https://www.mso.anu.edu.au/~ralph/OPTED/v003/wb1913_{letter}.html',
+                    verify=False
+                )
                 if response.status_code != requests.codes.ok:
                     raise Exception(f'Unexpected response status: {response.status_code}')
                 soup = BeautifulSoup(response.text, 'lxml')
