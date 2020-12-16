@@ -2,7 +2,7 @@ import pandas as pd
 import numpy as np
 import sqlite3
 from scipy.sparse import csr_matrix
-from typing import Tuple, Any, Union
+from typing import Tuple, Any, Union, List
 
 tables = {
     'vertices': [
@@ -29,14 +29,14 @@ class Conn:
     def __init__(self, conn: sqlite3.Connection):
         self.conn = conn
 
-    def create_table(self, table_name: str, lines: list[str]) -> None:
+    def create_table(self, table_name: str, lines: List[str]) -> None:
         schema = f'CREATE TABLE IF NOT EXISTS {table_name} (' + ','.join('\n    ' + line for line in lines) + '\n)'
         self.conn.execute(schema)
 
     def drop_table(self, table_name: str) -> None:
         self.conn.execute(f'DROP TABLE IF EXISTS {table_name}')
 
-    def create_index(self, index_name: str, table_name: str, indexed_columns: list[str]):
+    def create_index(self, index_name: str, table_name: str, indexed_columns: List[str]):
         self.conn.execute(f"CREATE INDEX IF NOT EXISTS {index_name} ON {table_name}({', '.join(indexed_columns)})")
 
     def drop_index(self, index_name: str) -> None:
@@ -111,7 +111,7 @@ class GraphWriter(Conn):
             self.adjacency_list[i] = j
 
     # Save induced subgraph
-    def save(self, vertices: list[str]):
+    def save(self, vertices: List[str]):
         vertices = pd.Series(vertices, name='value')
         edges = pd.DataFrame(((i, k) for (i, j) in self.adjacency_list.items() for k in j),
                              columns=['value1', 'value2'])
