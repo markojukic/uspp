@@ -113,11 +113,21 @@ class GraphReader(Conn):
     def size(self):
         return self.query_value('SELECT COUNT(*) FROM vertices'), self.query_value('SELECT COUNT(*) FROM edges')
 
+    def vertices(self):
+        return pd.read_sql('SELECT * FROM vertices', self.conn, index_col='id')
+
+    def edges(self):
+        return pd.read_sql('SELECT * FROM edges', self.conn)
+
     # Returns all vertices and edges as pandas DataFrames
     def to_pandas(self):
-        return (
-            pd.read_sql('SELECT * FROM vertices', self.conn, index_col='id'),
-            pd.read_sql('SELECT * FROM edges', self.conn)
+        return self.vertices(), self.edges()
+
+    def indegrees(self):
+        return pd.read_sql(
+            'SELECT id2 AS id, COUNT(id1) AS indegree FROM edges GROUP BY id2',
+            self.conn,
+            index_col='id'
         )
 
     # Generates the neighbourhood graph G_w
