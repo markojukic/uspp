@@ -9,7 +9,7 @@
 <body>
 <div id="container">
     <div id="help">
-        <button id="close-help" class="button-white" onclick="closeHelp()">ZATVORI</button>
+        <button id="close-help" class="button-white" onclick="closeHelp()" title="Zatvori pomoć">ZATVORI</button>
         <ul id="tips">
             <li>
                 Klikom miša u prazno polje dodajemo nove vrhove.
@@ -42,7 +42,7 @@
                 <option value="-1">Odaberi primjer</option>
             </select>
         </div>
-        <button class="button-white" onclick="openHelp()">POMOĆ</button>
+        <button class="button-white" onclick="openHelp()" title="Otvori pomoć">POMOĆ</button>
     </div>
     <div id="content">
         <div id="graphs">
@@ -50,8 +50,8 @@
                 <div class="title">
                     PRVI GRAF
                     <div class="center">
-                        <img src="table.svg" height="30" onclick="alert(adjacencyMatrixStr(0))">
-                        <img src="trash.svg" height="30" onclick="resetGraph(0)">
+                        <img src="table.svg" height="30" onclick="alert(adjacencyMatrixStr(0))" title="Izračunaj matricu sličnosti">
+                        <img src="trash.svg" height="30" onclick="resetGraph(0)" title="Obriši graf">
                     </div>
                 </div>
                 <svg id="left" height="600" width="600"></svg>
@@ -60,16 +60,14 @@
                 <div class="title">
                     DRUGI GRAF
                     <div class="center">
-                        <img src="table.svg" height="30" onclick="alert(adjacencyMatrixStr(1))">
-                        <img src="trash.svg" height="30" onclick="resetGraph(1)">
+                        <img src="table.svg" height="30" onclick="alert(adjacencyMatrixStr(1))" title="Izračunaj matricu sličnosti">
+                        <img src="trash.svg" height="30" onclick="resetGraph(1)" title="Obriši graf">
                     </div>
                 </div>
                 <svg id="right" height="600" width="600"></svg>
             </div>
         </div>
-        <button class="button-green" onclick="similarityMatrix()" class="flex-row"><img src="calculator.svg"
-                                                                                        height="30">Matrica sličnosti
-        </button>
+        <button class="button-green" onclick="similarityMatrix()" class="flex-row" title="Izračunaj matricu sličnosti grafova"><img src="calculator.svg" height="30">Matrica sličnosti</button>
         <table id="similarity_table" style="display: none;"></table>
     </div>
 </div>
