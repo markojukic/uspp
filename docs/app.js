@@ -611,3 +611,16 @@ function openHelp() {
 function closeHelp() {
     help.style.display = "none";
 }
+
+function adjacencyMatrixStr(t) {
+    const A = graphs[t].adjacencyMatrix()
+    if (A.length === 0) {
+        return "[]";
+    }
+    let s = "[" + JSON.stringify(A[0])
+    for (let i = 1; i < A.length; ++i) {
+        s += ",\n"
+        s += JSON.stringify(A[i]);
+    }
+    return s + "]"
+}

@@ -47,11 +47,22 @@
     <div id="content">
         <div id="graphs">
             <div>
-                <div class="title">PRVI GRAF<img src="trash.svg" height="30" onclick="resetGraph(0)"></div>
+                <div class="title">
+                    PRVI GRAF
+                    <div class="center">
+                        <img src="table.svg" height="30" onclick="alert(adjacencyMatrixStr(0))">
+                        <img src="trash.svg" height="30" onclick="resetGraph(0)">
+                    </div>
+                </div>
                 <svg id="left" height="600" width="600"></svg>
             </div>
             <div>
-                <div class="title">DRUGI GRAF<img src="trash.svg" height="30" onclick="resetGraph(1)">
+                <div class="title">
+                    DRUGI GRAF
+                    <div class="center">
+                        <img src="table.svg" height="30" onclick="alert(adjacencyMatrixStr(1))">
+                        <img src="trash.svg" height="30" onclick="resetGraph(1)">
+                    </div>
                 </div>
                 <svg id="right" height="600" width="600"></svg>
             </div>

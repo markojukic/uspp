@@ -180,6 +180,11 @@ img {
     align-items: center;
 }
 
+.center {
+    display: flex;
+    align-items: center;
+}
+
 ul {
     margin-top: 80px;
 }
